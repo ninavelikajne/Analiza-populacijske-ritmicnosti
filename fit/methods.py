@@ -1,17 +1,19 @@
 import sys
+
 import numpy as np
-import statsmodels.api as sm
 import pandas as pd
+import rpy2.robjects as robjects
+import scipy.stats as stats
+import statsmodels.api as sm
 import statsmodels.formula.api as smf
+
 from fit import dproc
 from fit import helpers as hlp
-import rpy2.robjects as robjects
-
 from fit import plotter
-import scipy.stats as stats
 
 r = robjects.r
 spec_ar = r['spec.ar']
+
 
 def cosinor_single(data, period=24, corrected=True):
     rrr = np.cos(2 * np.pi * data.x / period)
@@ -102,7 +104,8 @@ def cosinor(X, n_components, period=24):
 
     return X_fit, X_test, X_fit_test, X_fit_eval_params
 
-def cosinor_eval(X,Y,n_components=2,period=24):
+
+def cosinor_eval(X, Y, n_components=2, period=24):
     X_fit, X_test, X_fit_test, X_fit_eval_params = cosinor(X, n_components=n_components, period=period)
     method_params = {'n_components': n_components, 'period': period}
 
@@ -123,15 +126,16 @@ def cosinor_eval(X,Y,n_components=2,period=24):
     df_result.update({'data_std': np.std(Y)})
     df_result.update({'X_test': X_test})
     df_result.update({'Y_test': Y_test})
-    df_result.update({'results':results})
-    df_result.update({'X_fit_test':X_fit_test})
+    df_result.update({'results': results})
+    df_result.update({'X_fit_test': X_fit_test})
 
     df_result = (pd.DataFrame.from_dict(df_result, orient='index')).T
 
-    return df_result,model
+    return df_result, model
 
-def fit_cosinor_components(X,Y,n_components=[1,2,3],period=24):
-    df_results=pd.DataFrame()
+
+def fit_cosinor_components(X, Y, n_components=[1, 2, 3], period=24):
+    df_results = pd.DataFrame()
 
     for component in n_components:
         X_fit, X_test, X_fit_test, X_fit_eval_params = cosinor(X, n_components=component, period=period)
@@ -154,14 +158,15 @@ def fit_cosinor_components(X,Y,n_components=[1,2,3],period=24):
         df_result.update({'data_std': np.std(Y)})
         df_result.update({'X_test': X_test})
         df_result.update({'Y_test': Y_test})
-        df_result.update({'results':results})
-        df_result.update({'X_fit_test':X_fit_test})
+        df_result.update({'results': results})
+        df_result.update({'X_fit_test': X_fit_test})
 
     df_results = pd.concat([df_results, (pd.DataFrame.from_dict(df_result, orient='index')).T], ignore_index=True)
 
     best_cosinor = hlp.get_best_n_components(df_results)
     best_cosinor = (best_cosinor.to_frame()).T
     return best_cosinor
+
 
 def cosopt(X, Y, period=24, phase=np.linspace(-np.pi, 0, 100)):
     X = X[:, None]
@@ -184,14 +189,14 @@ def cosopt(X, Y, period=24, phase=np.linspace(-np.pi, 0, 100)):
 
     return X_fit, X_test, X_fit_test, X_fit_eval_params, phase[i]
 
-def cosopt_eval(X, Y, period=24, phase=np.linspace(-np.pi, np.pi, 100)):
 
-    X_fit, X_test, X_fit_test, X_fit_eval_params, phase=cosopt(X,Y,period=period,phase=phase)
+def cosopt_eval(X, Y, period=24, phase=np.linspace(-np.pi, np.pi, 100)):
+    X_fit, X_test, X_fit_test, X_fit_eval_params, phase = cosopt(X, Y, period=period, phase=phase)
     method_params = {'phase': phase, 'period': period}
 
-    #X_fit = sm.add_constant(X_fit, has_constant='add')
-    #X_fit_test = sm.add_constant(X_fit_test, has_constant='add')
-    #X_fit_eval_params = sm.add_constant(X_fit_eval_params, has_constant='add')
+    # X_fit = sm.add_constant(X_fit, has_constant='add')
+    # X_fit_test = sm.add_constant(X_fit_test, has_constant='add')
+    # X_fit_eval_params = sm.add_constant(X_fit_eval_params, has_constant='add')
 
     model = sm.OLS(Y, X_fit)
     results = model.fit()
@@ -209,7 +214,8 @@ def cosopt_eval(X, Y, period=24, phase=np.linspace(-np.pi, np.pi, 100)):
     df_result.update({'X_fit_test': X_fit_test})
 
     df_result = (pd.DataFrame.from_dict(df_result, orient='index')).T
-    return df_result,model
+    return df_result, model
+
 
 def arser(X, period):
     X_fit = np.array([])
@@ -230,7 +236,8 @@ def arser(X, period):
     X_fit_eval_params = X_fit_test
     return X_fit, X_test, X_fit_test, X_fit_eval_params
 
-def arser_est_period(x, dt_y, is_filter=True, ar_method='mle',time_step=1):
+
+def arser_est_period(x, dt_y, is_filter=True, ar_method='mle', time_step=1):
     delta = time_step
     num_freq_mese = 500
     set_order = 24 / delta
@@ -270,186 +277,7 @@ def arser_est_period(x, dt_y, is_filter=True, ar_method='mle',time_step=1):
     return periods
 
 
-def arser_eval_gee(X,Y,T_start=11, T_end=40, T_default=24,time_step=1,n_periods=2):
-    offsetsL = [0, 1, 1]
-    offsetsR = [0, 0, 1]
-    is_filter = [False]
-    ar_method = ['yule-walker', 'mle', 'burg']
-    best_model = {'AIC': 1e6, 'period': None, 'filter': None, 'ar_method': ''}
-    for p1 in is_filter:
-        for p2 in ar_method:
-            # choose best model's period from 'mle','yw','burg'
-            try:
-                est_periods=arser_est_period(X,Y,is_filter=p1, ar_method=p2,time_step=time_step)
-            except:
-                continue
-            periods = list(filter((lambda x: x >= T_start and x <= T_end), est_periods))
-            periods.sort(reverse=True)
-
-            if(len(periods)==n_periods):
-               periods=periods
-            elif(len(periods)>n_periods):
-                middle_index = (len(periods) // 2)
-                offsetL = offsetsL[n_periods - 1]
-                offsetR = offsetsR[n_periods - 1]
-                periods = periods[(middle_index - offsetL): (middle_index + offsetR + 1)]
-            elif(len(periods)<n_periods and len(periods)!=0):
-                periods.sort()
-                diff=n_periods-len(periods)
-                steps=[5,7,12,15,18,20]
-                for ix in range(diff):
-                    if(periods[len(periods)-1]>(T_default/2)):
-                        periods.append(periods[len(periods)-1]-steps[ix])
-                    else:
-                        periods.append(periods[len(periods)-1]+steps[ix])
-            else:
-                steps = [0,5, 7, 12, 15, 18, 20]
-                for ix in range(n_periods):
-                    periods.append(T_default-steps[ix])
-            periods.sort()
-            temp_X_fit, temp_X_test, temp_X_fit_test, temp_X_fit_eval_params = arser(X,periods)
-
-            temp_X_fit = sm.add_constant(temp_X_fit, has_constant='add')
-            temp_X_fit_test = sm.add_constant(temp_X_fit_test, has_constant='add')
-            temp_X_fit_eval_params = sm.add_constant(temp_X_fit_eval_params, has_constant='add')
-
-            model = sm.OLS(Y, temp_X_fit)
-            results = model.fit()
-
-            # period model selection by aic
-            aic = results.aic
-            if aic <= best_model['AIC']:
-                best_model['AIC'] = aic
-                best_model['period'] = periods
-                best_model['filter'] = p1
-                best_model['ar_method'] = p2
-                best_model['results']=results
-                best_model['model']=model
-                X_fit=temp_X_fit
-                X_test=temp_X_test
-                X_fit_test=temp_X_fit_test
-                X_fit_eval_params=temp_X_fit_eval_params
-
-    try:
-        results=best_model['results']
-        #print(str(best_model['filter'])+" "+best_model['ar_method'])
-        method_params = {'period': best_model['period']}
-        Y_test = results.predict(X_fit_test)
-        Y_eval_params = results.predict(X_fit_eval_params)
-        Y_fit = results.predict(X_fit)
-
-        # fig, ax1 = plt.subplots(1, 1, figsize=(12, 7))
-        # plot_cosopt.subplot_model(X, Y, X, Y, ax1, plot_model=False)
-        # plot_cosopt.subplot_model(X, Y, X_test, Y_test, ax1,
-        #                           fit_label='f', plot_measurements=False, color='gray')
-        # plt.show()
-        rhythm_params = dproc.evaluate_rhythm_params(X_test, Y_eval_params)
-        df_result = dproc.calculate_statistics(Y, Y_fit, results, 'arser', method_params, rhythm_params)
-        df_result.update({'data_mean': np.mean(Y)})
-        df_result.update({'data_std': np.std(Y)})
-        df_result.update({'X_test': X_test})
-        df_result.update({'Y_test': Y_test})
-        df_result.update({'results': results})
-        df_result.update({'X_fit_test': X_fit_test})
-        df_result = (pd.DataFrame.from_dict(df_result, orient='index')).T
-    except:
-        print("Can't estimate period")
-        return -1,-1
-
-
-    return X_fit, X_test, X_fit_test, X_fit_eval_params,best_model['period']
-
-
-def arser_eval(X,Y,T_start=11, T_end=40, T_default=24,time_step=1,n_periods=2):
-    offsetsL = [0, 1, 1]
-    offsetsR = [0, 0, 1]
-    is_filter = [False]
-    ar_method = ['yule-walker', 'mle', 'burg']
-    best_model = {'AIC': 1e6, 'period': None, 'filter': None, 'ar_method': ''}
-    for p1 in is_filter:
-        for p2 in ar_method:
-            # choose best model's period from 'mle','yw','burg'
-            try:
-                est_periods=arser_est_period(X,Y,is_filter=p1, ar_method=p2,time_step=time_step)
-            except:
-                continue
-            periods = list(filter((lambda x: x >= T_start and x <= T_end), est_periods))
-            periods.sort(reverse=True)
-
-            if(len(periods)==n_periods):
-               periods=periods
-            elif(len(periods)>n_periods):
-                middle_index = (len(periods) // 2)
-                offsetL = offsetsL[n_periods - 1]
-                offsetR = offsetsR[n_periods - 1]
-                periods = periods[(middle_index - offsetL): (middle_index + offsetR + 1)]
-            elif(len(periods)<n_periods and len(periods)!=0):
-                periods.sort()
-                diff=n_periods-len(periods)
-                steps=[5,7,12,15,18,20]
-                for ix in range(diff):
-                    if(periods[len(periods)-1]>(T_default/2)):
-                        periods.append(periods[len(periods)-1]-steps[ix])
-                    else:
-                        periods.append(periods[len(periods)-1]+steps[ix])
-            else:
-                steps = [0,5, 7, 12, 15, 18, 20]
-                for ix in range(n_periods):
-                    periods.append(T_default-steps[ix])
-            periods.sort()
-            temp_X_fit, temp_X_test, temp_X_fit_test, temp_X_fit_eval_params = arser(X,periods)
-
-            temp_X_fit = sm.add_constant(temp_X_fit, has_constant='add')
-            temp_X_fit_test = sm.add_constant(temp_X_fit_test, has_constant='add')
-            temp_X_fit_eval_params = sm.add_constant(temp_X_fit_eval_params, has_constant='add')
-
-            model = sm.OLS(Y, temp_X_fit)
-            results = model.fit()
-
-            # period model selection by aic
-            aic = results.aic
-            if aic <= best_model['AIC']:
-                best_model['AIC'] = aic
-                best_model['period'] = periods
-                best_model['filter'] = p1
-                best_model['ar_method'] = p2
-                best_model['results']=results
-                best_model['model']=model
-                X_fit=temp_X_fit
-                X_test=temp_X_test
-                X_fit_test=temp_X_fit_test
-                X_fit_eval_params=temp_X_fit_eval_params
-
-    try:
-        results=best_model['results']
-        #print(str(best_model['filter'])+" "+best_model['ar_method'])
-        method_params = {'period': best_model['period']}
-        Y_test = results.predict(X_fit_test)
-        Y_eval_params = results.predict(X_fit_eval_params)
-        Y_fit = results.predict(X_fit)
-
-        # fig, ax1 = plt.subplots(1, 1, figsize=(12, 7))
-        # plot_cosopt.subplot_model(X, Y, X, Y, ax1, plot_model=False)
-        # plot_cosopt.subplot_model(X, Y, X_test, Y_test, ax1,
-        #                           fit_label='f', plot_measurements=False, color='gray')
-        # plt.show()
-        rhythm_params = dproc.evaluate_rhythm_params(X_test, Y_eval_params)
-        df_result = dproc.calculate_statistics(Y, Y_fit, results, 'arser', method_params, rhythm_params)
-        df_result.update({'data_mean': np.mean(Y)})
-        df_result.update({'data_std': np.std(Y)})
-        df_result.update({'X_test': X_test})
-        df_result.update({'Y_test': Y_test})
-        df_result.update({'results': results})
-        df_result.update({'X_fit_test': X_fit_test})
-        df_result = (pd.DataFrame.from_dict(df_result, orient='index')).T
-    except:
-        print("Can't estimate period")
-        return -1,-1
-
-
-    return df_result,best_model['model']
-
-def arser2(X,Y,T_start=11, T_end=40, T_default=24,time_step=1,n_periods=1):
+def arser_eval_gee(X, Y, T_start=11, T_end=40, T_default=24, time_step=1, n_periods=2):
     offsetsL = [0, 1, 1]
     offsetsR = [0, 0, 1]
     is_filter = [False]
@@ -509,7 +337,171 @@ def arser2(X,Y,T_start=11, T_end=40, T_default=24,time_step=1,n_periods=1):
                 X_fit_test = temp_X_fit_test
                 X_fit_eval_params = temp_X_fit_eval_params
 
-    X_fit=X_fit[:,1:]
+    try:
+        results = best_model['results']
+        method_params = {'period': best_model['period']}
+        Y_test = results.predict(X_fit_test)
+        Y_eval_params = results.predict(X_fit_eval_params)
+        Y_fit = results.predict(X_fit)
+        rhythm_params = dproc.evaluate_rhythm_params(X_test, Y_eval_params)
+        df_result = dproc.calculate_statistics(Y, Y_fit, results, 'arser', method_params, rhythm_params)
+        df_result.update({'data_mean': np.mean(Y)})
+        df_result.update({'data_std': np.std(Y)})
+        df_result.update({'X_test': X_test})
+        df_result.update({'Y_test': Y_test})
+        df_result.update({'results': results})
+        df_result.update({'X_fit_test': X_fit_test})
+        df_result = (pd.DataFrame.from_dict(df_result, orient='index')).T
+    except:
+        print("Can't estimate period")
+        return -1, -1
+
+    return X_fit, X_test, X_fit_test, X_fit_eval_params, best_model['period']
+
+
+def arser_eval(X, Y, T_start=11, T_end=40, T_default=24, time_step=1, n_periods=2):
+    offsetsL = [0, 1, 1]
+    offsetsR = [0, 0, 1]
+    is_filter = [False]
+    ar_method = ['yule-walker', 'mle', 'burg']
+    best_model = {'AIC': 1e6, 'period': None, 'filter': None, 'ar_method': ''}
+    for p1 in is_filter:
+        for p2 in ar_method:
+            # choose best model's period from 'mle','yw','burg'
+            try:
+                est_periods = arser_est_period(X, Y, is_filter=p1, ar_method=p2, time_step=time_step)
+            except:
+                continue
+            periods = list(filter((lambda x: x >= T_start and x <= T_end), est_periods))
+            periods.sort(reverse=True)
+
+            if (len(periods) == n_periods):
+                periods = periods
+            elif (len(periods) > n_periods):
+                middle_index = (len(periods) // 2)
+                offsetL = offsetsL[n_periods - 1]
+                offsetR = offsetsR[n_periods - 1]
+                periods = periods[(middle_index - offsetL): (middle_index + offsetR + 1)]
+            elif (len(periods) < n_periods and len(periods) != 0):
+                periods.sort()
+                diff = n_periods - len(periods)
+                steps = [5, 7, 12, 15, 18, 20]
+                for ix in range(diff):
+                    if (periods[len(periods) - 1] > (T_default / 2)):
+                        periods.append(periods[len(periods) - 1] - steps[ix])
+                    else:
+                        periods.append(periods[len(periods) - 1] + steps[ix])
+            else:
+                steps = [0, 5, 7, 12, 15, 18, 20]
+                for ix in range(n_periods):
+                    periods.append(T_default - steps[ix])
+            periods.sort()
+            temp_X_fit, temp_X_test, temp_X_fit_test, temp_X_fit_eval_params = arser(X, periods)
+
+            temp_X_fit = sm.add_constant(temp_X_fit, has_constant='add')
+            temp_X_fit_test = sm.add_constant(temp_X_fit_test, has_constant='add')
+            temp_X_fit_eval_params = sm.add_constant(temp_X_fit_eval_params, has_constant='add')
+
+            model = sm.OLS(Y, temp_X_fit)
+            results = model.fit()
+
+            # period model selection by aic
+            aic = results.aic
+            if aic <= best_model['AIC']:
+                best_model['AIC'] = aic
+                best_model['period'] = periods
+                best_model['filter'] = p1
+                best_model['ar_method'] = p2
+                best_model['results'] = results
+                best_model['model'] = model
+                X_fit = temp_X_fit
+                X_test = temp_X_test
+                X_fit_test = temp_X_fit_test
+                X_fit_eval_params = temp_X_fit_eval_params
+
+    try:
+        results = best_model['results']
+        method_params = {'period': best_model['period']}
+        Y_test = results.predict(X_fit_test)
+        Y_eval_params = results.predict(X_fit_eval_params)
+        Y_fit = results.predict(X_fit)
+        rhythm_params = dproc.evaluate_rhythm_params(X_test, Y_eval_params)
+        df_result = dproc.calculate_statistics(Y, Y_fit, results, 'arser', method_params, rhythm_params)
+        df_result.update({'data_mean': np.mean(Y)})
+        df_result.update({'data_std': np.std(Y)})
+        df_result.update({'X_test': X_test})
+        df_result.update({'Y_test': Y_test})
+        df_result.update({'results': results})
+        df_result.update({'X_fit_test': X_fit_test})
+        df_result = (pd.DataFrame.from_dict(df_result, orient='index')).T
+    except:
+        print("Can't estimate period")
+        return -1, -1
+
+    return df_result, best_model['model']
+
+
+def arser2(X, Y, T_start=11, T_end=40, T_default=24, time_step=1, n_periods=1):
+    offsetsL = [0, 1, 1]
+    offsetsR = [0, 0, 1]
+    is_filter = [False]
+    ar_method = ['yule-walker', 'mle', 'burg']
+    best_model = {'AIC': 1e6, 'period': None, 'filter': None, 'ar_method': ''}
+    for p1 in is_filter:
+        for p2 in ar_method:
+            # choose best model's period from 'mle','yw','burg'
+            try:
+                est_periods = arser_est_period(X, Y, is_filter=p1, ar_method=p2, time_step=time_step)
+            except:
+                continue
+            periods = list(filter((lambda x: x >= T_start and x <= T_end), est_periods))
+            periods.sort(reverse=True)
+
+            if (len(periods) == n_periods):
+                periods = periods
+            elif (len(periods) > n_periods):
+                middle_index = (len(periods) // 2)
+                offsetL = offsetsL[n_periods - 1]
+                offsetR = offsetsR[n_periods - 1]
+                periods = periods[(middle_index - offsetL): (middle_index + offsetR + 1)]
+            elif (len(periods) < n_periods and len(periods) != 0):
+                periods.sort()
+                diff = n_periods - len(periods)
+                steps = [5, 7, 12, 15, 18, 20]
+                for ix in range(diff):
+                    if (periods[len(periods) - 1] > (T_default / 2)):
+                        periods.append(periods[len(periods) - 1] - steps[ix])
+                    else:
+                        periods.append(periods[len(periods) - 1] + steps[ix])
+            else:
+                steps = [0, 5, 7, 12, 15, 18, 20]
+                for ix in range(n_periods):
+                    periods.append(T_default - steps[ix])
+            periods.sort()
+            temp_X_fit, temp_X_test, temp_X_fit_test, temp_X_fit_eval_params = arser(X, periods)
+
+            temp_X_fit = sm.add_constant(temp_X_fit, has_constant='add')
+            temp_X_fit_test = sm.add_constant(temp_X_fit_test, has_constant='add')
+            temp_X_fit_eval_params = sm.add_constant(temp_X_fit_eval_params, has_constant='add')
+
+            model = sm.OLS(Y, temp_X_fit)
+            results = model.fit()
+
+            # period model selection by aic
+            aic = results.aic
+            if aic <= best_model['AIC']:
+                best_model['AIC'] = aic
+                best_model['period'] = periods
+                best_model['filter'] = p1
+                best_model['ar_method'] = p2
+                best_model['results'] = results
+                best_model['model'] = model
+                X_fit = temp_X_fit
+                X_test = temp_X_test
+                X_fit_test = temp_X_fit_test
+                X_fit_eval_params = temp_X_fit_eval_params
+
+    X_fit = X_fit[:, 1:]
     X_fit_test = X_fit_test[:, 1:]
     X_fit_eval_params = X_fit_eval_params[:, 1:]
 

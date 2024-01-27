@@ -1,33 +1,38 @@
-from fit import helpers, methods, plotter
-import pandas as pd
+import os
+
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import scipy.signal as signal
 import scipy.stats as stats
-import matplotlib.pyplot as plt
-from scipy.stats import circstd, circmean
-import os
-import statsmodels.formula.api as smf
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
+from scipy.stats import circstd, circmean
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
-from fit.helpers import project_acr,phase_to_radians,amp_acr, acrophase_to_hours
 
-def fit_to_model(df, method, n_components=[1,2,3], period=[24],phase=np.linspace(-np.pi, np.pi, 100)):
-    X= df['X'].to_numpy()
+from fit import helpers, methods, plotter
+from fit.helpers import project_acr, phase_to_radians, amp_acr, acrophase_to_hours
+
+
+def fit_to_model(df, method, n_components=[1, 2, 3], period=[24], phase=np.linspace(-np.pi, np.pi, 100)):
+    X = df['X'].to_numpy()
     Y = df['Y'].to_numpy()
 
-    if method=='cosinor':
+    if method == 'cosinor':
         df_result = methods.cosinor_eval(X, Y, n_components=n_components, period=period[0])
-    elif method=='cosopt':
+    elif method == 'cosopt':
         df_result = methods.cosopt_eval(X, Y, period=period[0], phase=phase)
-    elif method=="arser":
+    elif method == "arser":
         df_result = methods.arser_eval(X, Y)
 
     return df_result
 
-def evaluate_cosinor1(x, MESOR, amp, acr, period):
-    return MESOR + amp*np.cos((2*np.pi*x/period) + acr)
 
-def non_population_fit_cosinor1(df,period=24,corrected=True):
+def evaluate_cosinor1(x, MESOR, amp, acr, period):
+    return MESOR + amp * np.cos((2 * np.pi * x / period) + acr)
+
+
+def non_population_fit_cosinor1(df, period=24, corrected=True):
     rrr = np.cos(2 * np.pi * df.X / period)
     sss = np.sin(2 * np.pi * df.X / period)
 
@@ -80,9 +85,9 @@ def non_population_fit_cosinor1(df,period=24,corrected=True):
 
 
 def population_fit_cosinor1(df_pop, period, save_to='', alpha=0.05, plot_on=True, plot_individuals=True,
-                           plot_measurements=True, plot_margins=True, color="black", hold_on=False,
-                           plot_residuals=False,save_folder=''):
-    population_id=df_pop.population_id.iloc[0]
+                            plot_measurements=True, plot_margins=True, color="black", hold_on=False,
+                            plot_residuals=False, save_folder=''):
+    population_id = df_pop.population_id.iloc[0]
 
     if save_folder:
         # save_to = save_folder+"\\pop_"+name+'.pdf'
@@ -197,11 +202,11 @@ def population_fit_cosinor1(df_pop, period, save_to='', alpha=0.05, plot_on=True
                 "Warning: Amplitude confidence interval contains zero. Acrophase confidence interval cannot be calculated and was set to NA.")
         else:
             fiu = acr + np.arctan(((c23 * (t ** 2)) + (
-                        (t * np.sqrt(c33)) * np.sqrt((amp ** 2) - (((c22 * c33) - (c23 ** 2)) * ((t ** 2) / c33))))) / (
-                                              (amp ** 2) - (c22 * (t ** 2))))
+                    (t * np.sqrt(c33)) * np.sqrt((amp ** 2) - (((c22 * c33) - (c23 ** 2)) * ((t ** 2) / c33))))) / (
+                                          (amp ** 2) - (c22 * (t ** 2))))
             fil = acr + np.arctan(((c23 * (t ** 2)) - (
-                        (t * np.sqrt(c33)) * np.sqrt((amp ** 2) - (((c22 * c33) - (c23 ** 2)) * ((t ** 2) / c33))))) / (
-                                              (amp ** 2) - (c22 * (t ** 2))))
+                    (t * np.sqrt(c33)) * np.sqrt((amp ** 2) - (((c22 * c33) - (c23 ** 2)) * ((t ** 2) / c33))))) / (
+                                          (amp ** 2) - (c22 * (t ** 2))))
 
             se_acr = (fiu - acr) / t
             T0 = acr / se_acr
@@ -220,10 +225,6 @@ def population_fit_cosinor1(df_pop, period, save_to='', alpha=0.05, plot_on=True
 
     Y_fit = evaluate_cosinor1(X_fit, MESOR, amp, acr, period)
     if plot_on:
-        # x = np.linspace(min(df_pop.x), max(df_pop.x), 100)
-
-
-        # plt.plot(X_fit, Y_fit, 'black')
         plt.plot(X_fit, Y_fit, color=color, label=str(test))
         plt.title('pop_id')
 
@@ -266,9 +267,6 @@ def population_fit_cosinor1(df_pop, period, save_to='', alpha=0.05, plot_on=True
             else:
                 plt.show()
 
-    # print("acr", acr)
-    # print("ACR (h): ", -period * acr/(2*np.pi))
-
     confint = {'amp': (ampl, ampu),
                'acr': (fil, fiu),
                'MESOR': (mesorl, mesoru)}
@@ -287,13 +285,12 @@ def population_fit_cosinor1(df_pop, period, save_to='', alpha=0.05, plot_on=True
         Fvalue = frac1 * frac2 * brack
         df2 = k - 2
         p_value = 1 - stats.f.cdf(Fvalue, 2, df2)
-        # print(p_value)
 
     else:
         p_value = np.nan
 
-    res={'population_id': population_id, 'names': param_names, 'values': params, 'means': means, 'confint': confint,
-            'p_value': p_value, 'p_mesor': p_mesor, 'p_amp': p_amp, 'p_acr': p_acr}
+    res = {'population_id': population_id, 'names': param_names, 'values': params, 'means': means, 'confint': confint,
+           'p_value': p_value, 'p_mesor': p_mesor, 'p_amp': p_amp, 'p_acr': p_acr}
 
     d = {'population_id': population_id,
          'p': res['p_value'],
@@ -307,51 +304,54 @@ def population_fit_cosinor1(df_pop, period, save_to='', alpha=0.05, plot_on=True
          'p(acrophase)': res['p_acr'],
          'CI(acrophase)': [res['confint']['acr'][0], res['confint']['acr'][1]],
          'acrophase[h]': acrophase_to_hours(res['means'][-1], period),
-         'Y_test':Y_fit}
+         'Y_test': Y_fit}
 
     df_result = (pd.DataFrame.from_dict(d, orient='index')).T
 
     return df_result
 
-def fit_non_population(df,method,n_components=1, n_periods=1,period=[24],phase=np.linspace(-np.pi, 0, 100),plot=True,ax=None,time_step=1,fig_name='',label='',color='gray',raw_label=''):
+
+def fit_non_population(df, method, n_components=1, n_periods=1, period=[24], phase=np.linspace(-np.pi, 0, 100),
+                       plot=True, ax=None, time_step=1, fig_name='', label='', color='gray', raw_label=''):
     X = df['X'].to_numpy()
     Y = df['Y'].to_numpy()
 
-    if plot and ax==None:
+    if plot and ax == None:
         fig, ax = plt.subplots(1, 1, figsize=(12, 7))
     if plot:
-        if raw_label!='':
-            plotter.subplot_model(X, Y, X, Y, ax, plot_model=False, raw_label=raw_label, plot_measurements_with_color=True, color=color)
+        if raw_label != '':
+            plotter.subplot_model(X, Y, X, Y, ax, plot_model=False, raw_label=raw_label,
+                                  plot_measurements_with_color=True, color=color)
         else:
             plotter.subplot_model(X, Y, X, Y, ax, plot_model=False)
 
     if method == 'cosinor':
         result, model = methods.cosinor_eval(X, Y, n_components=n_components, period=period[0])
     elif method == 'cosopt':
-        result, model= methods.cosopt_eval(X, Y, period=period[0], phase=phase)
+        result, model = methods.cosopt_eval(X, Y, period=period[0], phase=phase)
     elif method == "arser":
         result, model = methods.arser_eval(X, Y, n_periods=n_periods, time_step=time_step)
 
     if type(result) != int:
         result = result.iloc[0]
         if plot:
-            if label!='':
+            if label != '':
                 plotter.subplot_model(X, Y, result['X_test'], result['Y_test'], ax,
                                       fit_label=label, plot_measurements=False, color=color)
             else:
                 plotter.subplot_model(X, Y, result['X_test'], result['Y_test'], ax,
                                       fit_label=method, plot_measurements=False, color=color)
 
-            if fig_name!='':
+            if fig_name != '':
                 plt.savefig('./results/figs_gen/' + fig_name + '_population_' + method + ".png")
                 plt.show()
                 plt.close()
 
-    return result,ax
+    return result, ax
 
-def fit_population(df,method,n_components=2, n_periods=2,period=[24],phase=np.linspace(-np.pi, 0, 100),plot_individuals=True,plot_population=True,time_step=1,fig_name='',df_periods=None,pop_id=0):
-    print('\t '+method+" c: "+str(n_components)+" p: "+str(n_periods))
 
+def fit_population(df, method, n_components=2, n_periods=2, period=[24], phase=np.linspace(-np.pi, 0, 100),
+                   plot_individuals=True, plot_population=True, time_step=1, fig_name='', df_periods=None, pop_id=0):
     parameters_to_analyse = ['amplitude', 'acrophase', 'mesor']
     parameters_angular = ['acrophase']
     ind_params = {}
@@ -359,60 +359,57 @@ def fit_population(df,method,n_components=2, n_periods=2,period=[24],phase=np.li
     for param in parameters_to_analyse:
         ind_params[param] = []
 
-    plot=plot_individuals | plot_population
+    plot = plot_individuals | plot_population
     X = df['X'].to_numpy()
     Y = df['Y'].to_numpy()
 
     params = -1
-    replicates=df['id'].unique()
-    k=len(replicates)
-    err_cnt=0
+    replicates = df['id'].unique()
+    k = len(replicates)
+    err_cnt = 0
 
     if plot:
         fig, ax = plt.subplots(1, 1, figsize=(12, 7))
         plotter.subplot_model(X, Y, X, Y, ax, plot_model=False)
 
     # individuals
-    periods=[]
+    periods = []
     for replicate in replicates:
-        # if replicate in [49]:
-        #     print()
-        rep=df[df.id==replicate]
-        print('\t'+str(replicate))
-        rep_x=rep['X'].to_numpy()
+        rep = df[df.id == replicate]
+        rep_x = rep['X'].to_numpy()
         rep_y = rep['Y'].to_numpy()
 
-        if method=='cosinor':
-            rep_result,model = methods.cosinor_eval(rep_x, rep_y, n_components=n_components, period=period[0])
-            rep_result['replicate']=replicate
+        if method == 'cosinor':
+            rep_result, model = methods.cosinor_eval(rep_x, rep_y, n_components=n_components, period=period[0])
+            rep_result['replicate'] = replicate
             rep_result = rep_result.iloc[0]
-        elif method=='cosopt':
+        elif method == 'cosopt':
             rep_result, model = methods.cosopt_eval(rep_x, rep_y, period=period[0], phase=phase)
             rep_result['replicate'] = replicate
             rep_result = rep_result.iloc[0]
-        elif method=="arser":
-            rep_result,model = methods.arser_eval(rep_x, rep_y, n_periods=n_periods, time_step=time_step)
-            if type(rep_result)==int:
-                err_cnt=err_cnt+1
+        elif method == "arser":
+            rep_result, model = methods.arser_eval(rep_x, rep_y, n_periods=n_periods, time_step=time_step)
+            if type(rep_result) == int:
+                err_cnt = err_cnt + 1
                 continue
             rep_result['replicate'] = replicate
             rep_result = rep_result.iloc[0]
 
-            new_row={'n_periods':n_periods,'population_id':pop_id,'id':replicate,'periods':rep_result['method_params']['period']}
-            df_periods= pd.concat([df_periods, (pd.DataFrame.from_dict(new_row, orient='index')).T],
+            new_row = {'n_periods': n_periods, 'population_id': pop_id, 'id': replicate,
+                       'periods': rep_result['method_params']['period']}
+            df_periods = pd.concat([df_periods, (pd.DataFrame.from_dict(new_row, orient='index')).T],
                                    ignore_index=True)
 
-            if len(periods)==0:
-                periods=rep_result['method_params']['period']
+            if len(periods) == 0:
+                periods = rep_result['method_params']['period']
             else:
-                periods=np.vstack([periods, rep_result['method_params']['period']])
+                periods = np.vstack([periods, rep_result['method_params']['period']])
 
         for param in parameters_to_analyse:
             ind_params[param].append(rep_result[param])
 
-
-        results=rep_result['results']
-        rep_params=results.params
+        results = rep_result['results']
+        rep_params = results.params
         if type(params) == int:
             params = rep_params
             Y_test_all = rep_result['Y_test']
@@ -423,13 +420,13 @@ def fit_population(df,method,n_components=2, n_periods=2,period=[24],phase=np.li
         if plot_individuals:
             plotter.subplot_model(X, Y, rep_result['X_test'], rep_result['Y_test'], ax,
                                   fit_label=replicate, plot_measurements=False, color='gray')
-    k=k-err_cnt
-    if k==0:
+    k = k - err_cnt
+    if k == 0:
         return -1
     if k > 1:
         means = np.mean(params, axis=0)
         variances = np.sum((params - np.mean(params, axis=0)) ** 2, axis=0) / (
-                    k - 1)  # np.var(params, axis=0) # isto kot var z ddof=k-1
+                k - 1)  # np.var(params, axis=0) # isto kot var z ddof=k-1
         sd = variances ** 0.5
         se = sd / ((k - 1) ** 0.5)
         T0 = means / se
@@ -481,24 +478,24 @@ def fit_population(df,method,n_components=2, n_periods=2,period=[24],phase=np.li
     xy.sort()
     x, y = zip(*xy)
     x, y = np.array(x), np.array(y)
-    if method=='cosinor':
+    if method == 'cosinor':
         X_fit, X_test, X_fit_test, X_fit_eval_params = methods.cosinor(x, n_components=n_components, period=period[0])
         method_params = {'n_components': n_components, 'period': period[0]}
 
         X_fit = sm.add_constant(X_fit, has_constant='add')
         X_fit_test = sm.add_constant(X_fit_test, has_constant='add')
         X_fit_eval_params = sm.add_constant(X_fit_eval_params, has_constant='add')
-    elif method=='cosopt':
+    elif method == 'cosopt':
         X_fit, X_test, X_fit_test, X_fit_eval_params, best_phase = methods.cosopt(x, y, period=period[0], phase=phase)
         method_params = {'phase': best_phase, 'period': period[0]}
-    elif method=='arser':
-        #ex=np.rint(periods)
-        #modus=stats.mode(ex,axis=0).mode[0]
+    elif method == 'arser':
+        # ex=np.rint(periods)
+        # modus=stats.mode(ex,axis=0).mode[0]
         mean_periods = np.mean(periods, axis=0)
-        if k==1:
-            mean_periods=[mean_periods]
-        X_fit, X_test, X_fit_test, X_fit_eval_params= methods.arser(x, period=mean_periods)
-        method_params = {'period': mean_periods,'n_periods':n_periods}
+        if k == 1:
+            mean_periods = [mean_periods]
+        X_fit, X_test, X_fit_test, X_fit_eval_params = methods.arser(x, period=mean_periods)
+        method_params = {'period': mean_periods, 'n_periods': n_periods}
 
         X_fit = sm.add_constant(X_fit, has_constant='add')
         X_fit_test = sm.add_constant(X_fit_test, has_constant='add')
@@ -511,12 +508,13 @@ def fit_population(df,method,n_components=2, n_periods=2,period=[24],phase=np.li
     # CI plot
     var_Y = np.var(Y_test_all, axis=0, ddof=k - 1)
     sd_Y = var_Y ** 0.5
-    #lowerA = Y_test - ((t * sd_Y) / ((k - 1) ** 0.5))
-    #upperA = Y_test + ((t * sd_Y) / ((k - 1) ** 0.5))
+    # lowerA = Y_test - ((t * sd_Y) / ((k - 1) ** 0.5))
+    # upperA = Y_test + ((t * sd_Y) / ((k - 1) ** 0.5))
 
     rhythm_params = evaluate_rhythm_params(X_test, Y_eval_params)
     df_result = calculate_statistics(Y, Y_fit, results, method, method_params, rhythm_params)
-    statistics_params = {'values': means,'SE': se,'CI': (lower_CI, upper_CI),'p-values': p_values,'ind_params_stats': ind_params_stats}
+    statistics_params = {'values': means, 'SE': se, 'CI': (lower_CI, upper_CI), 'p-values': p_values,
+                         'ind_params_stats': ind_params_stats}
 
     df_result.update({'data_mean': np.mean(Y)})
     df_result.update({'data_std': np.std(Y)})
@@ -529,17 +527,17 @@ def fit_population(df,method,n_components=2, n_periods=2,period=[24],phase=np.li
 
     df_result = (pd.DataFrame.from_dict(df_result, orient='index')).T
 
-
     if plot_population:
         plotter.subplot_model(X, Y, X_test, Y_test, ax,
                               fit_label='population',
                               plot_measurements=False, color='blue')
     if plot:
-        plt.savefig('./results/figs_gen/'+fig_name+'_population_'+method+".png")
-        #plt.show()
+        plt.savefig('./results/figs_gen/' + fig_name + '_population_' + method + ".png")
+        # plt.show()
         plt.close()
 
-    return df_result,df_periods
+    return df_result, df_periods
+
 
 def evaluate_rhythm_params(X, Y, period=24):
     X = X[:period * 10]
@@ -560,16 +558,18 @@ def evaluate_rhythm_params(X, Y, period=24):
 
     if period:
         ACROPHASE = phase_to_radians(PHASE, period)
-        #ACROPHASE = project_acr(ACROPHASE)
+        # ACROPHASE = project_acr(ACROPHASE)
     else:
         ACROPHASE = np.nan
 
     heights = heights['peak_heights']
     x = np.take(X, locs)
 
-    result = {'amplitude': round(AMPLITUDE, 2), 'acrophase':ACROPHASE,'mesor': round(MESOR, 2), 'locs': np.around(x, decimals=2),
+    result = {'amplitude': round(AMPLITUDE, 2), 'acrophase': ACROPHASE, 'mesor': round(MESOR, 2),
+              'locs': np.around(x, decimals=2),
               'heights': np.around(heights, decimals=2)}
     return result
+
 
 def calculate_statistics(Y, Y_fit, results, method, method_params, rhythm_param):
     # RSS
@@ -582,14 +582,14 @@ def calculate_statistics(Y, Y_fit, results, method, method_params, rhythm_param)
     bic = results.bic
 
     # resid
-    resid=results.resid
-    resid_mean=np.mean(resid)
-    resid_std=np.std(resid)
+    resid = results.resid
+    resid_mean = np.mean(resid)
+    resid_std = np.std(resid)
 
     return {'method': method, 'method_params': method_params,
-            'amplitude': rhythm_param['amplitude'],'acrophase':rhythm_param['acrophase'],
+            'amplitude': rhythm_param['amplitude'], 'acrophase': rhythm_param['acrophase'],
             'mesor': rhythm_param['mesor'], 'peaks': rhythm_param['locs'], 'heights': rhythm_param['heights'],
             'RSS': RSS, 'AIC': aic, 'BIC': bic,
             'log_likelihood': results.llf,
-            'resid': resid, 'resid_mean':resid_mean,'resid_std':resid_std,
-            'est_mean': Y_fit.mean(), 'est_std': Y_fit.std(),'Y_est': Y_fit}
+            'resid': resid, 'resid_mean': resid_mean, 'resid_std': resid_std,
+            'est_mean': Y_fit.mean(), 'est_std': Y_fit.std(), 'Y_est': Y_fit}

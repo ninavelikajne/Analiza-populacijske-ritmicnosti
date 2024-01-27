@@ -1,30 +1,32 @@
-import scipy.stats
-from sklearn.metrics import mean_squared_error
 import random
 
 import numpy as np
-import scipy.stats as stats
 import pandas as pd
+import scipy.stats as stats
 
-param_dict={'noise':'šum n','num_of_period':'časovno obdobje zbiranja podatkov p','step':'časovni korak zbiranja podatkov s','replicates':' število subjektov v populaciji r'}
+param_dict = {'noise': 'šum n', 'num_of_period': 'časovno obdobje zbiranja podatkov p',
+              'step': 'časovni korak zbiranja podatkov s', 'replicates': ' število subjektov v populaciji r'}
 
-def acro_circ(df,combo):
-    valid=df[df.parameter==combo]
-    mean=stats.circmean(list(valid['acrophase'].to_numpy()),low=-2*np.pi,high=0)
-    std = stats.circstd(list(valid['acrophase'].to_numpy()),low=-2*np.pi,high=0)
+
+def acro_circ(df, combo):
+    valid = df[df.parameter == combo]
+    mean = stats.circmean(list(valid['acrophase'].to_numpy()), low=-2 * np.pi, high=0)
+    std = stats.circstd(list(valid['acrophase'].to_numpy()), low=-2 * np.pi, high=0)
 
     return mean, std
 
+
 # project acrophase to the interval [-pi, pi]
 def project_acr(acr):
-    acr %= (2*np.pi)
+    acr %= (2 * np.pi)
     if acr > np.pi:
-        acr -= 2*np.pi
+        acr -= 2 * np.pi
     elif acr < -np.pi:
-        acr += 2*np.pi
+        acr += 2 * np.pi
     return acr
 
-def clean_data(df,x,y):
+
+def clean_data(df, x, y):
     df = df.dropna(subset=[x, y])
     X = df[x].unique()
 
@@ -32,37 +34,39 @@ def clean_data(df,x,y):
         df_hour = df.loc[df[x] == hour].copy()
         # cleaning outliers
         df_hour = df_hour.loc[df_hour[y] >= df_hour[y].quantile(0.15)].copy()
-        df_hour = df_hour.loc[df_hour[y]<= df_hour[y].quantile(0.85)].copy()
+        df_hour = df_hour.loc[df_hour[y] <= df_hour[y].quantile(0.85)].copy()
         df.loc[df[x] == hour, [y]] = df_hour[y]
 
     df = df.dropna(subset=[x, y])
     return df
 
-def clean_data_id(df,x,y,id):
-    models=['1','2','3','4','5']
+
+def clean_data_id(df, x, y, id):
+    models = ['1', '2', '3', '4', '5']
     df = df.dropna(subset=[x, y])
     X = df[x].unique()
-    ids=df[id].unique()
-    final=-1
+    ids = df[id].unique()
+    final = -1
 
     for ix in ids:
-        df_new=df[df[id]==ix]
+        df_new = df[df[id] == ix]
         df_new['model'] = random.choice(models)
-        if df_new.shape[0]>10:
+        if df_new.shape[0] > 10:
             for hour in X:
                 df_hour = df_new.loc[df_new[x] == hour].copy()
                 # cleaning outliers
                 df_hour = df_hour.loc[df_hour[y] >= df_hour[y].quantile(0.15)].copy()
-                df_hour = df_hour.loc[df_hour[y]<= df_hour[y].quantile(0.85)].copy()
-                #df.loc[df[x] == hour and df[id]==ix, [y]] = df_hour[y]
+                df_hour = df_hour.loc[df_hour[y] <= df_hour[y].quantile(0.85)].copy()
+                # df.loc[df[x] == hour and df[id]==ix, [y]] = df_hour[y]
 
-                if type(final)==int:
-                    final=df_hour.copy()
+                if type(final) == int:
+                    final = df_hour.copy()
                 else:
-                    final = pd.concat([final, df_hour], axis=0,ignore_index=True)
+                    final = pd.concat([final, df_hour], axis=0, ignore_index=True)
 
-    #df = df.dropna(subset=[x, y])
+    # df = df.dropna(subset=[x, y])
     return final
+
 
 def amp_acr(beta_s, beta_r, corrected=True):
     amp = (beta_s ** 2 + beta_r ** 2) ** (1 / 2)
@@ -111,14 +115,17 @@ def amp_acr(beta_s, beta_r, corrected=True):
 
     return amp, acr
 
+
 def phase_to_radians(phase, period=24):
-    phase_rads = (-(phase/period)*2*np.pi) % (2*np.pi)
+    phase_rads = (-(phase / period) * 2 * np.pi) % (2 * np.pi)
     if phase_rads > 0:
-        phase_rads -= 2*np.pi
+        phase_rads -= 2 * np.pi
     return phase_rads
+
 
 def fractional_part(x):
     return x % 1
+
 
 def savitzky_golay(data, kernel=11, order=4):
     """
@@ -178,8 +185,9 @@ def savitzky_golay(data, kernel=11, order=4):
         smooth_data.append(value)
     return np.array(smooth_data)
 
+
 def f_test(first_row, second_row):
-    n_components1=first_row['method_params']['n_components']
+    n_components1 = first_row['method_params']['n_components']
     n_components2 = second_row['method_params']['n_components']
 
     n_points = len(first_row['Y_est'])
@@ -200,6 +208,7 @@ def f_test(first_row, second_row):
 
     return first_row
 
+
 def get_best_n_components(df_results):
     df_results = df_results[df_results['method'] == 'cosinor'].copy()
 
@@ -213,15 +222,17 @@ def get_best_n_components(df_results):
 
     return best_row
 
+
 # convert phase angles in radians to time units
 def acrophase_to_hours(acrophase, period=24):
     acrophase = project_acr(acrophase)
-    hours = -period * acrophase/(2*np.pi)
+    hours = -period * acrophase / (2 * np.pi)
     if hours < 0:
         hours += period
     return hours
 
-def cosinor1_classify_rhythm(rhythm,p_amp,amp_threshold=0.05):
+
+def cosinor1_classify_rhythm(rhythm, p_amp, amp_threshold=0.05):
     str = ''
     tp, fp, tn, fn = 0, 0, 0, 0
     if rhythm == 1 and p_amp < amp_threshold:
@@ -239,24 +250,25 @@ def cosinor1_classify_rhythm(rhythm,p_amp,amp_threshold=0.05):
     return tp, fp, tn, fn, str
 
 
-def classify_rhythm(rhythm,amplitude,amp_threshold=0.1):
-    str=''
-    tp,fp,tn,fn=0,0,0,0
-    if rhythm==1 and amplitude>amp_threshold:
-        tp=1
-        str='tp'
-    elif rhythm==1 and amplitude<amp_threshold:
-        fn=1
-        str='fn'
-    elif rhythm==0 and amplitude>amp_threshold:
-        fp=1
-        str='fp'
-    elif rhythm==0 and amplitude<amp_threshold:
-        tn=1
-        str='tn'
-    return tp,fp,tn,fn,str
+def classify_rhythm(rhythm, amplitude, amp_threshold=0.1):
+    str = ''
+    tp, fp, tn, fn = 0, 0, 0, 0
+    if rhythm == 1 and amplitude > amp_threshold:
+        tp = 1
+        str = 'tp'
+    elif rhythm == 1 and amplitude < amp_threshold:
+        fn = 1
+        str = 'fn'
+    elif rhythm == 0 and amplitude > amp_threshold:
+        fp = 1
+        str = 'fp'
+    elif rhythm == 0 and amplitude < amp_threshold:
+        tn = 1
+        str = 'tn'
+    return tp, fp, tn, fn, str
 
-def calculate_rmse(actual, predicted,norm=False):
+
+def calculate_rmse(actual, predicted, norm=False):
     if len(actual) != len(predicted):
         raise ValueError("Input arrays must have the same length.")
     actual = np.array(actual)
@@ -264,18 +276,14 @@ def calculate_rmse(actual, predicted,norm=False):
     squared_errors = (actual - predicted) ** 2
     mean_squared_errorr = np.mean(squared_errors)
     rmse = np.sqrt(mean_squared_errorr)
-    rmse2 = np.sqrt(mean_squared_error(actual, predicted))
-    if rmse!=rmse2:
-        print()
-    if rmse <0:
-        print()
 
     if norm:
-        mini=actual.min()
-        maxi=actual.max()
-        rmse=rmse/(maxi-mini)
+        mini = actual.min()
+        maxi = actual.max()
+        rmse = rmse / (maxi - mini)
 
     return rmse
+
 
 def precision(tp, fp):
     try:
@@ -283,11 +291,13 @@ def precision(tp, fp):
     except:
         return np.nan
 
+
 def recall(tp, fn):
     try:
         return tp / (tp + fn)
     except:
         return np.nan
+
 
 def f1_score(tp, fp, fn):
     precision_value = precision(tp, fp)
@@ -299,8 +309,9 @@ def f1_score(tp, fp, fn):
     except:
         return np.nan
 
-def get_scores(b,param,agg_results,method,data_name,repetition=0):
-    a=b[b.changing_param==param]
+
+def get_scores(b, param, agg_results, method, data_name, repetition=0):
+    a = b[b.changing_param == param]
 
     for param_val in a[param].unique():
         c = a[a[param] == param_val]
@@ -320,71 +331,70 @@ def get_scores(b,param,agg_results,method,data_name,repetition=0):
         r = recall(tp, fn)
         f1 = f1_score(tp, fp, fn)
 
-        below=np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-        if(below==0):
-            mcc=(tp * tn - fp * fn) / 0.001
+        below = np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+        if (below == 0):
+            mcc = (tp * tn - fp * fn) / 0.001
         else:
-            mcc=(tp * tn - fp * fn) / below
+            mcc = (tp * tn - fp * fn) / below
 
-        temp = {'method': method, 'data_name': data_name, 'repetition':repetition,'param': param, 'param_val': param_val, 'tp': tp, 'tn': tn,
+        temp = {'method': method, 'data_name': data_name, 'repetition': repetition, 'param': param,
+                'param_val': param_val, 'tp': tp, 'tn': tn,
                 'fp': fp, 'fn': fn, 'precision': p, 'recall': r, 'f1': f1, 'mcc': mcc}
         agg_results = pd.concat([agg_results, (pd.DataFrame.from_dict(temp, orient='index')).T],
                                 ignore_index=True)
     return agg_results
 
+
 def get_column_names(n_components):
-    base1='ss'
-    base2='rr'
-    columns=[]
+    base1 = 'ss'
+    base2 = 'rr'
+    columns = []
     for i in range(n_components):
-        temp1=base1+str(i+1)
-        temp2=base2+str(i+1)
+        temp1 = base1 + str(i + 1)
+        temp2 = base2 + str(i + 1)
         columns.append(temp1)
         columns.append(temp2)
     return columns
 
-def formulate_formula_interaction(interactions,columns):
-    formula='~'
-    interaction=''
-    for i,inter in enumerate(interactions):
-        if i==0:
-            interaction=interaction+inter
-        else:
-            interaction=interaction+"*"+inter
 
-    formula=formula+interaction
+def formulate_formula_interaction(interactions, columns):
+    formula = '~'
+    interaction = ''
+    for i, inter in enumerate(interactions):
+        if i == 0:
+            interaction = interaction + inter
+        else:
+            interaction = interaction + "*" + inter
+
+    formula = formula + interaction
     for column in columns:
-        formula = formula +"+"+ interaction + "*" + column
+        formula = formula + "+" + interaction + "*" + column
     return formula
 
-def formulate_formula(variables,columns):
-    formula='~'
-    # for ix,var in enumerate(variables):
-    #     if ix==0:
-    #         formula=formula+"C("+var+")"
-    #     else:
-    #         formula=formula+"+C("+var+")"
-    #     for column in columns:
-    #         formula=formula+"+C("+var+")*"+column
-    for ix,var in enumerate(variables):
-        if ix==0:
-            formula=formula+var
+
+def formulate_formula(variables, columns):
+    formula = '~'
+    for ix, var in enumerate(variables):
+        if ix == 0:
+            formula = formula + var
         else:
-            formula=formula+"+"+var
+            formula = formula + "+" + var
         for column in columns:
-            formula=formula+"+"+var+"*"+column
+            formula = formula + "+" + var + "*" + column
     return formula
 
-def sample_by_id(df,id,size):
-    replicates=list(df[id].unique())
-    ids=random.sample(replicates, size)
+
+def sample_by_id(df, id, size):
+    replicates = list(df[id].unique())
+    ids = random.sample(replicates, size)
     return df[df[id].isin(ids)]
 
+
 def tup2str(tuple):
-    s=''
-    for i,x in enumerate(tuple):
-        if i==0:
-            s=s+x
+    s = ''
+    for i, x in enumerate(tuple):
+        if i == 0:
+            s = s + x
         else:
-            s=s+", "+x
+            s = s + ", " + x
     return s
