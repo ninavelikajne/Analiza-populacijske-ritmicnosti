@@ -10,11 +10,11 @@ V mapi "studies" so analize sintetičnih podatkov.
 #### [izračun napak](analyse)
 V mapi "analyse" so python skripte za primerjavo dejanskih in ocenjenih parametrov ritma za generirane sintetične podatke.
 
-#### [demo_GEE.ipynb](demo_GEE.ipynb)
+#### [Demonstracija GEE modela](demo_GEE.ipynb)
 Demonstracija uporabe GEE modelov na podatkih pametnih ur.
 
-#### [demo_mešani_učinki.ipynb](demo_mešani_učinki.ipynb)
+#### [Demonstracija modela z mešanimi učinki](demo_mesani_ucinki.ipynb)
 Demonstracija uporabe modelov z mešanimi učinki na podatkih pametnih ur.
 
-#### [spalna_apneja.ipynb](spalna_apneja.ipynb)
+#### [Primerjalna analiza medicinskih podatkov](spalna_apneja.ipynb)
 Primerjalna analiza medicinskih podatkov med bolniki s spalno apnejo in kontrolno skupino.
