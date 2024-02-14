@@ -20,7 +20,7 @@ plotter.subplot_model(X_test, Y_2, X_test, Y_2, ax, plot_model=True, plot_measur
 plotter.subplot_model(X_test, Y_3, X_test, Y_3, ax, plot_model=True, plot_measurements=False,
                       fit_label='2.serija asimetrični ritmični', color='green')
 ax.legend()
-plt.savefig('../results/gen_data.png')
+plt.savefig('../results/gen_data.pdf')
 plt.show()
 
 res_1 = dproc.evaluate_rhythm_params(X_test, Y_1)

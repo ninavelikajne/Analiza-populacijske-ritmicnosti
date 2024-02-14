@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 from fit import helpers, methods, dproc, plotter
 
-colors = ['darkblue', 'darkorange', 'darkgreen', 'darkred', 'purple', 'saddlebrown', 'mediumvioletred', 'dimgray']
+colors=['blue','orange','red','orange','purple','grey','mediumvioletred','dimgray']
 
 dicti = {'amplitude': 'amplituda', 'acrophase': 'faza', 'mesor': 'MESOR'}
 
@@ -156,10 +156,12 @@ def mixed_effects(df, predict_var, time_var, group_var, random_var="1", variable
 
 
 def me_cosinor(df, predict_var, time_var, group_var, variables=None, interactions=None, n_components=1, period=24,
-               random_var="1", plot=True, save_to='', plot_title='', summary=False):
+               random_var="1", plot=True, save_to='', plot_title='', summary=False,ax=None, fit_label='',prod=0):
     df_results = pd.DataFrame()
-    if plot:
+    show = False
+    if plot and ax == None:
         fig, ax = plt.subplots(1, 1, figsize=(12, 7))
+        show = True
 
     df = df.reset_index(drop=True)
     columns = helpers.get_column_names(n_components)
@@ -229,7 +231,7 @@ def me_cosinor(df, predict_var, time_var, group_var, variables=None, interaction
                                    ignore_index=True)
             if plot:
                 plotter.subplot_model(X_test, temp['predicted'], X_test, temp['predicted'], ax, plot_model=True,
-                                      plot_measurements=False, fit_label=str(combo), color=colors[i])
+                                      plot_measurements=False, fit_label=fit_label+str(combo), color=colors[prod+i])
     elif variables != None:
         for var in variables:
             df_new = df_new[~df_new[var].isna()]
@@ -260,24 +262,27 @@ def me_cosinor(df, predict_var, time_var, group_var, variables=None, interaction
                                    ignore_index=True)
             if plot:
                 plotter.subplot_model(X_test, temp['predicted'], X_test, temp['predicted'], ax, plot_model=True,
-                                      plot_measurements=False, fit_label=str(combo), color=colors[i])
+                                      plot_measurements=False, fit_label=fit_label+str(combo), color=colors[prod+i])
     else:
         print("Interactions or variables can't be None.")
         return
 
-    if plot:
+    if plot and show:
         plt.title(plot_title)
-        ax.legend()
+        ax.legend(fontsize=20)
+        fig.tight_layout()
         fig.savefig(save_to)
         plt.show()
     return df_results
 
 
 def me_cosopt(df, predict_var, time_var, group_var, variables=None, interactions=None, period=24, random_var="1",
-              plot=True, save_to='', plot_title='', summary=False):
+              plot=True, save_to='', plot_title='', summary=False,ax=None, fit_label=''):
     df_results = pd.DataFrame()
-    if plot:
+    show = False
+    if plot and ax == None:
         fig, ax = plt.subplots(1, 1, figsize=(12, 7))
+        show = True
 
     df = df.reset_index(drop=True)
     columns = helpers.get_column_names(1)
@@ -358,7 +363,7 @@ def me_cosopt(df, predict_var, time_var, group_var, variables=None, interactions
                                    ignore_index=True)
             if plot:
                 plotter.subplot_model(X_test, temp['predicted'], X_test, temp['predicted'], ax, plot_model=True,
-                                      plot_measurements=False, fit_label=str(combo), color=colors[i])
+                                      plot_measurements=False, fit_label=fit_label+str(combo), color=colors[i])
     elif variables != None:
         for var in variables:
             df_new = df_new[~df_new[var].isna()]
@@ -390,25 +395,28 @@ def me_cosopt(df, predict_var, time_var, group_var, variables=None, interactions
                                    ignore_index=True)
             if plot:
                 plotter.subplot_model(X_test, temp['predicted'], X_test, temp['predicted'], ax, plot_model=True,
-                                      plot_measurements=False, fit_label=str(combo), color=colors[i])
+                                      plot_measurements=False, fit_label=fit_label+str(combo), color=colors[i])
                 plotter.subplot_model(measurements_df[time_var], measurements_df[predict_var],
                                       measurements_df[time_var], measurements_df[predict_var], ax, plot_model=False,
-                                      plot_measurements=True, fit_label=str(combo), color=colors[i],
+                                      plot_measurements=True, fit_label=fit_label+str(combo), color=colors[i],
                                       plot_measurements_with_color=True)
 
-    if plot:
+    if plot and show:
         plt.title(plot_title)
-        ax.legend()
+        ax.legend(fontsize=20)
+        fig.tight_layout()
         fig.savefig(save_to)
         plt.show()
     return df_results
 
 
 def me_arser(df, predict_var, time_var, group_var, n_periods=1, variables=None, interactions=None, random_var="1",
-             plot=True, est_periods=-1, save_to='', plot_title='', summary=False):
+             plot=True, est_periods=-1, save_to='', plot_title='', summary=False,ax=None, fit_label=''):
     df_results = pd.DataFrame()
-    if plot:
+    show = False
+    if plot and ax == None:
         fig, ax = plt.subplots(1, 1, figsize=(12, 7))
+        show = True
 
     df = df.reset_index(drop=True)
     columns = helpers.get_column_names(n_periods)
@@ -516,7 +524,7 @@ def me_arser(df, predict_var, time_var, group_var, n_periods=1, variables=None, 
                                    ignore_index=True)
             if plot:
                 plotter.subplot_model(X_test, temp['predicted'], X_test, temp['predicted'], ax, plot_model=True,
-                                      plot_measurements=False, fit_label=str(combo), color=colors[i])
+                                      plot_measurements=False, fit_label=fit_label+str(combo), color=colors[i])
     elif variables != None:
         for var in variables:
             df_new = df_new[~df_new[var].isna()]
@@ -548,15 +556,16 @@ def me_arser(df, predict_var, time_var, group_var, n_periods=1, variables=None, 
                                    ignore_index=True)
             if plot:
                 plotter.subplot_model(X_test, temp['predicted'], X_test, temp['predicted'], ax, plot_model=True,
-                                      plot_measurements=False, fit_label=str(combo), color=colors[i])
+                                      plot_measurements=False, fit_label=fit_label+str(combo), color=colors[i])
                 plotter.subplot_model(measurements_df[time_var], measurements_df[predict_var],
                                       measurements_df[time_var], measurements_df[predict_var], ax, plot_model=False,
-                                      plot_measurements=True, fit_label=str(combo), color=colors[i],
+                                      plot_measurements=True, fit_label=fit_label+str(combo), color=colors[i],
                                       plot_measurements_with_color=True)
 
-    if plot:
+    if plot and show:
         plt.title(plot_title)
-        ax.legend()
+        ax.legend(fontsize=20)
+        fig.tight_layout()
         fig.savefig(save_to)
         plt.show()
     return df_results

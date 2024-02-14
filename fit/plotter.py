@@ -67,10 +67,10 @@ def plot_single(data, results, test='', plot_measurements=True, save_to='', plot
 
 
 def subplot_model(X, Y, X_test, Y_test, ax, plot_measurements=True, plot_measurements_with_color=False, plot_model=True,
-                  title='', color='black', fit_label='', period=24, raw_label='raw data'):
+                  title='', color='black', fit_label='', period=24, raw_label='raw data',y_label='meritve [arbitrarna vrednost]'):
     ax.set_title(title)
-    ax.set_xlabel('čas')
-    ax.set_ylabel('vrednost')
+    ax.set_xlabel('čas [h]',fontsize=20)
+    ax.set_ylabel(y_label,fontsize=20)
 
     if plot_measurements:
         if plot_measurements_with_color:
@@ -81,6 +81,8 @@ def subplot_model(X, Y, X_test, Y_test, ax, plot_measurements=True, plot_measure
         ax.plot(X_test, Y_test, label=fit_label, color=color)
 
     ax.set_xlim(0, period - 1)
+    #ax.set_ylim(min(Y.min(),Y_test.min())-1, max(Y.max(),Y_test.max())+1)
+
     return ax
 
 

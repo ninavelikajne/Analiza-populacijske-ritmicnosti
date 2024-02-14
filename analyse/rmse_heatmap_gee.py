@@ -63,17 +63,13 @@ for i, plot_metric in enumerate(plot_metrics):
         ax = fig.add_subplot(gs[j, i])
         sns.heatmap(data, ax=ax, xticklabels=x_heat, yticklabels=y_heat,
                     cmap=sns.cubehelix_palette(as_cmap=True))
-        if j == 0 and i == 1:
-            ax.set_title(measure_dict[plot_metric] + "\n" + data_dict[data_name], fontsize=25)
-        elif j == 0:
-            ax.set_title(measure_dict[plot_metric] + "\n", fontsize=25)
-        elif i == 1:
-            ax.set_title(data_dict[data_name], fontsize=25)
+        if j == 0:
+            ax.set_title(measure_dict[plot_metric], fontsize=25)
 
-        if i == 0 and j == 1:
-            ax.set_ylabel("ritmične metode", fontsize=25)
+        if i == 0:
+            ax.set_ylabel(data_dict[data_name], fontsize=25)
         if j == 2 and i == 1:
-            ax.set_xlabel("parameteri generiranja", fontsize=25)
+            ax.set_xlabel("\nparameteri generiranja", fontsize=25)
 fig.tight_layout()
 plt.savefig('../results/gee/rmse/heatmap.pdf')
 

@@ -312,7 +312,7 @@ def population_fit_cosinor1(df_pop, period, save_to='', alpha=0.05, plot_on=True
 
 
 def fit_non_population(df, method, n_components=1, n_periods=1, period=[24], phase=np.linspace(-np.pi, 0, 100),
-                       plot=True, ax=None, time_step=1, fig_name='', label='', color='gray', raw_label=''):
+                       plot=True, ax=None, time_step=1, fig_name='', label='', color='gray', raw_label='',y_label='meritve [arbitrarna vrednost]'):
     X = df['X'].to_numpy()
     Y = df['Y'].to_numpy()
 
@@ -337,10 +337,10 @@ def fit_non_population(df, method, n_components=1, n_periods=1, period=[24], pha
         if plot:
             if label != '':
                 plotter.subplot_model(X, Y, result['X_test'], result['Y_test'], ax,
-                                      fit_label=label, plot_measurements=False, color=color)
+                                      fit_label=label, plot_measurements=False, color=color,y_label=y_label)
             else:
                 plotter.subplot_model(X, Y, result['X_test'], result['Y_test'], ax,
-                                      fit_label=method, plot_measurements=False, color=color)
+                                      fit_label=method, plot_measurements=False, color=color,y_label=y_label)
 
             if fig_name != '':
                 plt.savefig('./results/figs_gen/' + fig_name + '_population_' + method + ".png")
